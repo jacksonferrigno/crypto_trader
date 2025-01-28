@@ -8,6 +8,7 @@ This project is a basic cryptocurrency trading bot that leverages machine learni
 - **Model Training**: Utilizes a Long Short-Term Memory (LSTM) neural network to predict future price changes.
 - **Trading Execution**: Makes buy/sell decisions based on model predictions and executes trades on Gemini using API keys.
 
+## Configuration
 
 
 ## Gemini Integration
@@ -15,4 +16,9 @@ This project is a basic cryptocurrency trading bot that leverages machine learni
 - **API Usage**: The bot interacts with the Gemini exchange through its public and private APIs to fetch price data and place trades.
 - **Trade Execution**: Trades are executed based on predicted price changes, with all transactions logged for review.
 
-The bot is designed to be simple and efficient, providing a foundation for automated trading on the Gemini platform.
+## Docker Hosting
+
+- **Containerization**: The bot is containerized using Docker, ensuring a consistent and isolated environment for both training and trading operations.
+- **Semaphore Flag**: A semaphore-like flag is used to prevent multiple instances of the trading bot from running simultaneously, avoiding conflicts and ensuring safe access to shared resources.
+
+This setup provides a robust foundation for automated trading on the Gemini platform, leveraging Docker for easy deployment and management.
