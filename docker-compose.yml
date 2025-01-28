@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    container_name: training_service
+    restart: always
+    environment:
+      - SEQ_LEN=${SEQ_LEN}
+      - BATCH_SIZE=${BATCH_SIZE}
+      - EPOCHS=${EPOCHS}
+      - MODEL_SAVE_PATH=${MODEL_SAVE_PATH}
+      - DATA_SAVE_PATH=${DATA_SAVE_PATH}
+      - TRAINING_DATA_JSON=${TRAINING_DATA_JSON}
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    entrypoint: ["sh", "-c", "while true; do python train_model.py; sleep 1500; done"] #25 minutes
+
+  trading:
+    build:
+      context: .
+      dockerfile: Dockerfile.trade
+    container_name: trading_service
+    restart: always
+    environment:
+      - SEQ_LEN=${SEQ_LEN}
+      - MODEL_SAVE_PATH=${MODEL_SAVE_PATH}
+      - API_KEY=${API_KEY}
+      - API_SECRET=${API_SECRET}
+      - THRESHOLD=${THRESHOLD}
+      - TRADE_AMOUNT=${TRADE_AMOUNT}
+    volumes:
+      - ./models:/app/models
+    entrypoint: ["python", "main.py"]  # already does this but trades every 60 secondds
