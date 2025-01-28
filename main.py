@@ -16,10 +16,13 @@ API_SECRET = os.getenv("API_SECRET")
 THRESHOLD = float(os.getenv("THRESHOLD", 0.025))  
 TRADE_AMOUNT = float(os.getenv("TRADE_AMOUNT", 1.25))  # Default trade amount
 
-def trade_loop(symbol="btcusd"):
+def main(symbol="btcusd"):
     print("loading model")
-    model = load_model(MODEL_PATH)
-    
+    try:    
+        model = load_model(MODEL_PATH)
+    except Exception as e:
+        print(f"error {e}")    
+        return 
     price_window=[]
     
     print("starting to trade muhaha")
@@ -60,6 +63,6 @@ def trade_loop(symbol="btcusd"):
             
             
 if __name__=="__main__":
-    trade_loop()
+    main()
                 
             

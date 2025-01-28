@@ -17,7 +17,7 @@ services:
     volumes:
       - ./models:/app/models
       - ./data:/app/data
-    entrypoint: ["sh", "-c", "while true; do python train_model.py; sleep 1500; done"] #25 minutes
+    entrypoint: ["sh", "-c", "while true; do python train_model.py && touch /app/models/train_done.flag && sleep 1500; done"]
 
   trading:
     build:
@@ -25,6 +25,8 @@ services:
       dockerfile: Dockerfile.trade
     container_name: trading_service
     restart: always
+    depends_on:
+      - training
     environment:
       - SEQ_LEN=${SEQ_LEN}
       - MODEL_SAVE_PATH=${MODEL_SAVE_PATH}
@@ -34,4 +36,5 @@ services:
       - TRADE_AMOUNT=${TRADE_AMOUNT}
     volumes:
       - ./models:/app/models
-    entrypoint: ["python", "main.py"]  # already does this but trades every 60 secondds
+    entrypoint: ["sh", "-c", "while [ ! -f /app/models/train_done.flag ]; do echo 'Waiting for training to complete...'; sleep 10; done && python main.py"]
+    tty: true
