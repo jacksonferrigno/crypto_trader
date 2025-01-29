@@ -13,9 +13,10 @@ SEQ_LEN = int(os.getenv("SEQ_LEN"))
 MODEL_PATH = os.getenv("MODEL_SAVE_PATH")
 API_KEY = os.getenv("API_KEY")
 API_SECRET = os.getenv("API_SECRET")
-THRESHOLD = float(os.getenv("THRESHOLD", 0.025))  
+BUY_THRESHOLD = float(os.getenv("BUY_THRESHOLD", 0.0125))  # Min price increase to buy
+SELL_THRESHOLD = float(os.getenv("SELL_THRESHOLD", -0.025))  # Min price decrease to sell
 TRADE_AMOUNT = float(os.getenv("TRADE_AMOUNT", 1.25))  # Default trade amount
-
+MAX_CONSECUTIVE_TRADES = 4
 def main(symbol="btcusd"):
     print("loading model")
     try:    
@@ -24,6 +25,7 @@ def main(symbol="btcusd"):
         print(f"error {e}")    
         return 
     price_window=[]
+    trade_tracker =0 # + =more buys, -=more sells
     
     print("starting to trade muhaha")
     while True:
@@ -47,14 +49,24 @@ def main(symbol="btcusd"):
                 print(f"Current: {current_price}, Predicted: {predicted_price}, Change: {price_change:.4f}")
                 
                 #make trading decision 
-                if price_change>THRESHOLD:
-                    print(f"placingt buy at {current_price}")
-                    trade = place_trade(API_KEY, API_SECRET, symbol, TRADE_AMOUNT, current_price, side="buy")
-                    log_trade(trade)
-                elif price_change<=THRESHOLD:
-                    print(f"placing sell order at {current_price}")
-                    trade=place_trade(API_KEY, API_SECRET, symbol, TRADE_AMOUNT, current_price, side="sell")
-                    log_trade(trade)
+                if price_change>BUY_THRESHOLD:
+                    if trade_tracker>=MAX_CONSECUTIVE_TRADES:
+                        print("holding, too many buys")
+                    else:
+                        print(f"placingt buy at {current_price}")
+                        trade = place_trade(API_KEY, API_SECRET, symbol, TRADE_AMOUNT, current_price, side="buy")
+                        log_trade(trade)
+                        trade_tracker+=1
+                elif price_change<=SELL_THRESHOLD:
+                    if trade_tracker<=-MAX_CONSECUTIVE_TRADES:
+                        print(f"too many sells, waiting until buy to sell again")
+                    else:
+                        print(f"placing sell order at {current_price}")
+                        trade=place_trade(API_KEY, API_SECRET, symbol, TRADE_AMOUNT, current_price, side="sell")
+                        log_trade(trade)
+                        trade_tracker-=1
+                else:
+                    print("no indication to buy or sell")
                     
             time.sleep(60) #every 60 seconds 
         except Exception as e:
