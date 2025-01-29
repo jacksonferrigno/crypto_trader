@@ -1,11 +1,11 @@
 version: "3.9"
 
 services:
-  training:
+  trading_bot:
     build:
       context: .
-      dockerfile: Dockerfile.train
-    container_name: training_service
+      dockerfile: Dockerfile
+    container_name: trading_bot
     restart: always
     environment:
       - SEQ_LEN=${SEQ_LEN}
@@ -14,27 +14,13 @@ services:
       - MODEL_SAVE_PATH=${MODEL_SAVE_PATH}
       - DATA_SAVE_PATH=${DATA_SAVE_PATH}
       - TRAINING_DATA_JSON=${TRAINING_DATA_JSON}
-    volumes:
-      - ./models:/app/models
-      - ./data:/app/data
-    entrypoint: ["sh", "-c", "while true; do python train_model.py && touch /app/models/train_done.flag && sleep 1500; done"]
-
-  trading:
-    build:
-      context: .
-      dockerfile: Dockerfile.trade
-    container_name: trading_service
-    restart: always
-    depends_on:
-      - training
-    environment:
-      - SEQ_LEN=${SEQ_LEN}
-      - MODEL_SAVE_PATH=${MODEL_SAVE_PATH}
       - API_KEY=${API_KEY}
       - API_SECRET=${API_SECRET}
-      - THRESHOLD=${THRESHOLD}
+      - BUY_THRESHOLD=${BUY_THRESHOLD}
+      - SELL_THRESHOLD=${SELL_THRESHOLD}
       - TRADE_AMOUNT=${TRADE_AMOUNT}
     volumes:
       - ./models:/app/models
-    entrypoint: ["sh", "-c", "while [ ! -f /app/models/train_done.flag ]; do echo 'Waiting for training to complete...'; sleep 10; done && python main.py"]
+      - ./data:/app/data
+    entrypoint: ["sh", "-c", "python main.py"]
     tty: true
