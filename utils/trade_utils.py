@@ -1,3 +1,4 @@
+import numpy as np
 import requests
 import time
 import json
@@ -45,3 +46,38 @@ def log_trade(trade_data, file_path="trade_log.json"):
     with open(file_path,"a") as f:
         f.write(json.dumps(trade_data)+"\n")
     print(f"trade logged {trade_data}")
+    
+    
+def compute_rsi(prices, period=14):
+    """computes rsi for the last period
+    from 0-100 
+    rsi <30 oversold (buy area)
+    rsi> overbought (sell area)
+    """
+    if len(prices)<period:
+        #not enough info
+        return 50.0
+    gains=0.0
+    losses=0.0
+    for i in range(1, period):
+        diff= prices[-i]-prices[-i-1]
+        if diff>=0:
+            gains+=diff
+        else:
+            losses-=diff
+            
+    if losses==0:
+        return 100 #prevent div by 0 error -> bullish
+    
+    
+    avg_gain=gains/period
+    avg_loss=losses/period
+    rs=avg_gain/avg_loss
+    rsi =100-(100/(1+rs))
+    
+    return rsi
+
+def moving_average(values,window):
+    if len(values)<window:
+        return np.mean(values)
+    return np.mean(values[-window:])
