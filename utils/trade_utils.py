@@ -58,7 +58,7 @@ def compute_rsi(prices, period=14):
         #not enough info
         return 50.0
     gains=0.0
-    losses=0/0
+    losses=0.0
     for i in range(1, period):
         diff= prices[-i]-prices[-i-1]
         if diff>=0:

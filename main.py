@@ -39,6 +39,9 @@ def trade(symbol="btcusd"):
     print("loading model...")
     try:    
         model = load_model(MODEL_PATH)
+        _,_, price_scaler, indicator_scaler= preprocess_data(
+            fetch_data(symbol,limit=500),seq_len=SEQ_LEN
+        )
     except Exception as e:
         print(f"error {e}")    
         return 
@@ -59,21 +62,36 @@ def trade(symbol="btcusd"):
                     rsi_window=rsi_window[-2000:] #longer window for rsi 
                     
             if len(price_window)==SEQ_LEN:
-                max_price = max(price_window)
-                scaled_window= np.array(price_window)/max_price
-                input_data= scaled_window[np.newaxis,:,np.newaxis] # Shape: (1, SEQ_LEN, 1)
                 
+                rsi_val = compute_rsi(rsi_window,14)
+                short_ma= moving_average(rsi_window,20)
+                long_ma= moving_average(rsi_window,60)
+                
+                scaled_prices= price_scaler.transform(
+                    np.array(price_window).reshape(-1,1)
+                ).flatten()
+                
+                indicators = indicator_scaler.transform(
+                    np.array([[rsi_val,short_ma,long_ma]])
+                )[0]
+                #prep input data with feats
+                input_sequence = np.column_stack([
+                    scaled_prices,
+                    np.full(SEQ_LEN,indicators[0]),#rsi
+                    np.full(SEQ_LEN,indicators[1]), # short ma
+                    np.full(SEQ_LEN,indicators[2]), # long ma
+                ])
+                #reshape for model i/p 
+                input_data= input_sequence[np.newaxis,:,:]
                 #predict next price
-                predicted_scale= model.predict(input_data)[0][0]
-                predicted_price= predicted_scale* max_price
+                predicted_scaled = model.predict(input_data)[0][0]
+                predicted_price = price_scaler.inverse_transform(
+                    [[predicted_scaled]]
+                )[0][0]
                 #calc change
                 price_change=(predicted_price-current_price)/current_price
                 
-                #rsi values
-                rsi_val= compute_rsi(rsi_window,14)
-                short_ma= moving_average(rsi_window,20)
-                long_ma=moving_average(rsi_window,60)
-                
+            
                 print(
                     f"\nCurrent: {current_price:.2f}, "
                     f"Predicted: {predicted_price:.2f}, "
@@ -145,11 +163,11 @@ def train():
                 print("raw data saved")
                 
                 print("preprocessing data....")
-                X,y, scaler= preprocess_data(df,seq_len=SEQ_LEN)
+                X,y, scaler, indicator_scaler = preprocess_data(df,seq_len=SEQ_LEN)
                 save_to_json(X,y,TRAINING_DATA_JSON)
             else:
                 print("loading data from json")
-                X,y,scaler= load_data(TRAINING_DATA_JSON,seq_len=SEQ_LEN)
+                X,y,scaler,indicator_scaler= load_data(TRAINING_DATA_JSON,seq_len=SEQ_LEN)
             #split data for training     
             X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
             #build it 
@@ -158,7 +176,7 @@ def train():
                 model=load_model(MODEL_PATH)
                 print(f"    -retraining loaded model")
             else:
-                model= build_lstm_model((SEQ_LEN,1))
+                model= build_lstm_model((SEQ_LEN,4))
             history= train_model(model, X_train, y_train, X_val, y_val, save_path=MODEL_PATH, epochs=EPOCHS, batch_size=BATCH_SIZE)
             
             
@@ -169,7 +187,7 @@ def train():
             """    print("visualizing data")
             plot_predictions(y_val_norm,y_pred_norm)"""
             print("model training complete")
-            time.sleep(600)
+            time.sleep(3600)
         except Exception as e:
             print(f"error in training {e}")
             time.sleep(60)
